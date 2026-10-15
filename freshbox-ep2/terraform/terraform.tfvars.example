@@ -1,0 +1,1 @@
+db_password = "alumno123"   # igual que k8s/secret.yaml (cámbiala y regenera el secret si quieres)

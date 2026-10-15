@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delete-product
+  namespace: freshbox
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: delete-product
+  template:
+    metadata:
+      labels:
+        app: delete-product
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: delete-product
+      containers:
+      - name: delete-product
+        image: 465921892512.dkr.ecr.us-east-1.amazonaws.com/freshbox-delete-product:latest
+        ports:
+        - containerPort: 3004
+        env:
+        - name: PORT
+          value: "3004"
+        - name: DB_HOST
+          valueFrom: { configMapKeyRef: { name: freshbox-config, key: DB_HOST } }
+        - name: DB_NAME
+          valueFrom: { configMapKeyRef: { name: freshbox-config, key: DB_NAME } }
+        - name: DB_PORT
+          valueFrom: { configMapKeyRef: { name: freshbox-config, key: DB_PORT } }
+        - name: DB_USER
+          valueFrom: { secretKeyRef: { name: freshbox-secret, key: DB_USER } }
+        - name: DB_PASS
+          valueFrom: { secretKeyRef: { name: freshbox-secret, key: DB_PASS } }
+        resources:
+          requests: { cpu: 100m, memory: 128Mi }
+          limits: { cpu: 250m, memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: delete-product
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+  namespace: freshbox
+spec:
+  selector:
+    app: delete-product
+  ports:
+  - port: 3004
+    targetPort: 3004
+  type: ClusterIP
+
+# 2026 - Disenador asignatura: Ignacio A. Pastenet M.

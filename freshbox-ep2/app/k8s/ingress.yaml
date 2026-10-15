@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: freshbox-ingress
+  namespace: freshbox
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/security-groups: sg-031686a3d1a28de0b   # terraform output sg_alb
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    # El ALB no distingue métodos por path; se usan condiciones por método HTTP
+    alb.ingress.kubernetes.io/conditions.get-products: >-
+      [{"field":"http-request-method","httpRequestMethodConfig":{"Values":["GET"]}}]
+    alb.ingress.kubernetes.io/conditions.create-product: >-
+      [{"field":"http-request-method","httpRequestMethodConfig":{"Values":["POST"]}}]
+    alb.ingress.kubernetes.io/conditions.update-product: >-
+      [{"field":"http-request-method","httpRequestMethodConfig":{"Values":["PUT"]}}]
+    alb.ingress.kubernetes.io/conditions.delete-product: >-
+      [{"field":"http-request-method","httpRequestMethodConfig":{"Values":["DELETE"]}}]
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api/products
+        pathType: Prefix
+        backend: { service: { name: create-product, port: { number: 3002 } } }
+      - path: /api/products
+        pathType: Prefix
+        backend: { service: { name: update-product, port: { number: 3003 } } }
+      - path: /api/products
+        pathType: Prefix
+        backend: { service: { name: delete-product, port: { number: 3004 } } }
+      - path: /api/products
+        pathType: Prefix
+        backend: { service: { name: get-products, port: { number: 3001 } } }
+      - path: /
+        pathType: Prefix
+        backend: { service: { name: frontend, port: { number: 80 } } }

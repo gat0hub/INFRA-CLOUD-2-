@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: freshbox-config
+  namespace: freshbox
+data:
+  DB_HOST: "freshbox-mysql.cny08eky25kp.us-east-1.rds.amazonaws.com"
+  DB_NAME: "freshbox"
+  DB_PORT: "3306"
+
+# 2026 - Disenador asignatura: Ignacio A. Pastenet M.

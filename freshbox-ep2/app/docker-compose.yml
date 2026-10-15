@@ -1,0 +1,93 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: localroot
+      MYSQL_DATABASE: freshbox
+      MYSQL_USER: alumno
+      MYSQL_PASSWORD: alumno123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  get-products:
+    build: ./microserviciosEKSBackend/get-products
+    environment: &db-environment
+      DB_HOST: db
+      DB_NAME: freshbox
+      DB_USER: alumno
+      DB_PASS: alumno123
+      DB_PORT: "3306"
+      PORT: "3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  create-product:
+    build: ./microserviciosEKSBackend/create-product
+    environment:
+      <<: *db-environment
+      PORT: "3002"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  update-product:
+    build: ./microserviciosEKSBackend/update-product
+    environment:
+      <<: *db-environment
+      PORT: "3003"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3003/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  delete-product:
+    build: ./microserviciosEKSBackend/delete-product
+    environment:
+      <<: *db-environment
+      PORT: "3004"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3004/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build: ./microservicioEKSFrontend
+    ports:
+      - "8080:80"
+    depends_on:
+      get-products:
+        condition: service_healthy
+      create-product:
+        condition: service_healthy
+      update-product:
+        condition: service_healthy
+      delete-product:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
